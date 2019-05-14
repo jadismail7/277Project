@@ -5,8 +5,8 @@ var app = express();
 app.use(express.json())
 // app.use(bodyParser);
 
-app.post('/api/add/scientist',(req,res)=>{
-    var manager = 'NULL';
+app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
+    var manager = null;
     if (req.body.managerID != null) {
         manager = req.body.managerID;
     }
@@ -18,7 +18,7 @@ app.post('/api/add/scientist',(req,res)=>{
 });
 
 
-app.post('/api/add/project',(req,res)=>{
+app.post('/api/add/project',(req,res)=>{ // adding a project
     con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.managerID},${req.body.depID})`,(err,result)=>{
         if (err) throw err;
         console.log("successful");
@@ -28,9 +28,9 @@ app.post('/api/add/project',(req,res)=>{
 
 app.post("/api/add/resource",(req,res)=>{
     
-})
+});
 
-app.get('/api/getall/scientists',(req,res)=>{
+app.get('/api/getall/scientists',(req,res)=>{ 
         con.query('SELECT * FROM `scientist` ', (err,result) => {
         if(err) throw err;
         console.log(JSON.stringify(result));
@@ -38,7 +38,7 @@ app.get('/api/getall/scientists',(req,res)=>{
     });
 });
 
-app.get('/api/get/scientists/:project',(req,res)=>{
+app.get('/api/get/scientists/:project',(req,res)=>{//add view + edit
     con.query(`SELECT * FROM scientist s INNER JOIN scientist_project_participation sp ON s.ID = sp.ScientistID INNER JOIN project p on p.ProjID = sp.ProjectID WHERE p.Name = '${req.params.project}' `,(err,result)=>{
         if (err) throw err;
         console.log(JSON.stringify(result));
@@ -46,6 +46,29 @@ app.get('/api/get/scientists/:project',(req,res)=>{
     });
 
 });
+
+app.get('/api/get/all/project',(req,res)=>{ // get all projects
+    con.query(`SELECT * FROM project`,(err,result)=>{
+        console.log(JSON.stringify(result));
+        res.end(JSON.stringify(result));
+    });
+});
+
+app.delete('/api/delete/scientist/:FName/:LName',(req,res)=>{
+    con.query(`DELETE FROM scientist where FirstName = "${req.params.FName}" AND LastName = "${req.params.LName}"`,(err,result)=>{
+        if (err) throw err;
+        res.end("Successful");
+    });
+});
+
+app.delete('/api/delete/scientist/:projectName',(req,res)=>{
+    con.query(`DELETE FROM project where Name = "${req.params.projectName}"`,(err,result)=>{
+        if (err) throw err;
+        res.end("Successful");
+    });
+});
+
+
 
 
 
