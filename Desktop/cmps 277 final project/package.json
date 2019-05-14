@@ -1,0 +1,16 @@
+{
+  "name": "dbms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": " ~4.16.4",
+    "mysql": "^2.17.1"
+  },
+  "author": "hamza mokahhal - jad ismail - amir naseredine - ziad awwad",
+  "license": "ISC"
+}
