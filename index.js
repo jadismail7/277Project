@@ -13,7 +13,8 @@ app.use((req, res, next)=>{
 
 app.use(session({secret: 'alildeektimes',
                 resave: true,
-                saveUninitialized: true
+                saveUninitialized: true,
+                cookie: {secure: true}
             })
     );
 
@@ -49,7 +50,7 @@ app.post("/api/add/resource",(req,res)=>{
     
 });
 
-app.get('/api/getall/scientists',(req,res)=>{ 
+app.get('/api/get/scientists',(req,res)=>{ 
         con.query('SELECT * FROM `scientist` ', (err,result) => {
         if(err) throw err;
         console.log(JSON.stringify(result));
@@ -63,8 +64,13 @@ app.get('/api/get/scientists/:project',(req,res)=>{//add view + edit
         console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
     });
-
 });
+
+app.get("/api/get/department/projects/:depID",(req,res)=>{
+    con.query(`SELECT projname as 'Project Name', projDesc as 'Project Description' FROM projects_department WHERE depId=${req.params.depID}`,(err,results)=>{
+        res.end(JSON.stringify(results));
+    })
+})
 
 app.get('/api/get/all/project',(req,res)=>{ // get all projects
     con.query(`SELECT * FROM project`,(err,result)=>{
@@ -209,5 +215,14 @@ app.get("/api/join/proj/:projid",(req,res)=>{
     }
 });
 
+app.get("/api/logout",(req,res)=>{
+    if (!req.session.scientistID) {
+        res.end("Already logged out");
+    } else {
+        req.session.scientistID = null;
+        res.end("Logged out successfully");
+    }
+})
 
-app.listen(8080,()=>{console.log('listening on port 8085')});
+
+app.listen(8085,()=>{console.log('listening on port 8085')});
