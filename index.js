@@ -12,7 +12,7 @@ app.use((req, res, next)=>{
 });
 
 app.use(session({secret: 'alildeektimes',
-                resave: true,
+                resave: false,
                 saveUninitialized: true,
                 cookie: {secure: true}
             })
