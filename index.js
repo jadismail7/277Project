@@ -4,7 +4,13 @@ var session = require("express-session");
 
 var app = express();
 app.use(express.json())
-// app.use(bodyParser);
+
+app.use((req, res, next)=>{
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 app.use(session({secret: 'alildeektimes',
                 resave: true,
                 saveUninitialized: true
@@ -26,11 +32,17 @@ app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
 
 
 app.post('/api/add/project',(req,res)=>{ // adding a project
-    con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.managerID},${req.body.depID})`,(err,result)=>{
-        if (err) throw err;
-        console.log("successful");
-        res.end("successful");
-    });
+    if (!req.session.scientistID) {
+        res.end("unauthorized");
+    } else {
+        con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.managerID},${req.body.depID})`,(err,result)=>{
+            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.session.scientistID})`,(err,result)=>{
+                if (err) throw err;
+                console.log("successful");
+                res.end("successful");
+            })
+        });
+    }
 });
 
 app.post("/api/add/resource",(req,res)=>{
@@ -193,9 +205,9 @@ app.get("/api/join/proj/:projid",(req,res)=>{
             else{
                 res.end("Successfully joined project");
             }
-        })
+        });
     }
-})
+});
 
 
-app.listen(8080,()=>{console.log('listening on port 8080')});
+app.listen(8080,()=>{console.log('listening on port 8085')});
