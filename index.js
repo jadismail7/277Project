@@ -1,22 +1,29 @@
 var express = require('express');
 var con = require('./dbconfig.js');
-var session = require("express-session");
-
+var livereload  = require("connect-livereload");
+var cors = require("cors");
 var app = express();
+
+
 app.use(express.json())
 
-app.use((req, res, next)=>{
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
+// app.use((req, res, next)=>{
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//   res.header("Access-Control-Allow-Credentials", true);
+//   next();
+// });
 
-app.use(session({secret: 'alildeektimes',
-                resave: true,
-                saveUninitialized: true
-            })
-    );
+var corsOptions = {
+    origin: '*',
+    credentials: true
+};
 
+app.use(cors(corsOptions));
+
+
+
+app.use(livereload());
 
 app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
     var manager = null;
@@ -39,11 +46,11 @@ app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
 
 
 app.post('/api/add/project',(req,res)=>{ // adding a project
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
         con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.managerID},${req.body.depID})`,(err,result)=>{
-            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.session.scientistID})`,(err,result)=>{
+            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.query.scientistID})`,(err,result)=>{
                 if (err) throw err;
                 console.log("successful");
                 res.end("successful");
@@ -52,9 +59,7 @@ app.post('/api/add/project',(req,res)=>{ // adding a project
     }
 });
 
-app.post("/api/add/resource",(req,res)=>{
-    
-});
+
 
 app.get('/api/get/scientists',(req,res)=>{ 
         con.query('SELECT * FROM `scientist` ', (err,result) => {
@@ -70,18 +75,23 @@ app.get('/api/get/scientists/:project',(req,res)=>{//add view + edit
         console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
     });
-
 });
 
-app.get('/api/get/project',(req,res)=>{ // get all projects
+app.get("/api/get/department/projects/:depName",(req,res)=>{
+    con.query(`SELECT projname as 'Project Name', projDesc as 'Project Description' FROM projects_department WHERE name= '${req.params.depName}'`,(err,results)=>{
+        res.end(JSON.stringify(results));
+    })
+})
+
+app.get('/api/get/all/project',(req,res)=>{ // get all projects
     con.query(`SELECT * FROM project`,(err,result)=>{
         console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
     });
 });
 
-app.delete('/api/delete/scientist/:FName/:LName',(req,res)=>{
-    con.query(`DELETE FROM scientist where FirstName = "${req.params.FName}" AND LastName = "${req.params.LName}"`,(err,result)=>{
+app.delete('/api/delete/scientist/:scientistID',(req,res)=>{
+    con.query(`DELETE FROM scientist where ID = ${req.params.scientistID}`,(err,result)=>{
         if (err) throw err;
         res.end("Successful");
     });
@@ -108,7 +118,49 @@ app.get('/api/get/scientist/results/:scientistID',(req,res)=>{
     });
 });
 
+app.get('/api/get/proj/result/:projName',(req,res)=>{
+    con.query(`SELECT Data FROM project p INNER JOIN results_yielded r ON p.ProjID = r.ProjID WHERE p.Name  = '${req.params.projName}'`,(err,results)=>{
+        if (err) throw err;
+        res.end(JSON.stringify(results))
+    });
+});
 
+app.get('/api/get/department/scientists/:depName',(req,res)=>{
+    con.query(`SELECT ID,FirstName,LastName FROM ScientistsInDep WHERE name = "${req.params.depName}"`,(err,results)=>{
+        if (err) throw err;
+        res.end(JSON.stringify(results));
+    });
+});
+
+app.get('/api/get/dep/results/:depName',(req,res)=>{
+    con.query(`SELECT projname,data from department_project_result where name = "${depName}"`,(err,results)=>{
+        res.end(JSON.stringify(results));
+    });
+});
+
+app.get('/api/get/resources',(req,res)=>{
+    con.query(`SELECT * FROM resources`,(err,results)=>{
+        res.end(JSON.stringify(results));
+    });
+});
+
+app.post('/api/edit/cost/resource',(req,res)=>{
+    con.query(`UPDATE resources SET Cost = ${req.body.cost} WHERE ResourceID = ${req.body.resID};`,(req,result)=>{
+        res.end("success");
+    });
+});
+
+app.post('/api/add/resource',(req,res)=>{
+    con.query(`INSERT INTO resources ( Name, Description, Cost) VALUES ( '${req.body.name}', '${req.body.description}', '${req.body.cost}');`,(req,result)=>{
+        res.end("success");
+    });
+});
+
+app.delete('/api/Delete/resource/:name',(req,res)=>{
+    con.query(`DELETE FROM resource WHERE Name ="${req.params.name}"');`,(req,result)=>{
+        res.end("success");
+    });
+});
 
 /*
             MEN HON W NZOUL ANA 3MELTON. MA TOD2ARON YA KHANZEYOYOYOYOYYOOOOR
@@ -122,49 +174,49 @@ app.post("/api/authenticate",(req,res)=>{
             res.end("Fail");
         }
         else if (password == result[0].password){
-            req.session.scientistID = result[0].id;
-            res.end("Successful");
+            res.end(JSON.stringify({success:1, id: result[0].id}));
         } else {
-            res.end("Fail");
+            res.end(JSON.stringify({success: 0}));
         }
     })
 })
 
 app.get("/api/get/my/managees",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query("SELECT s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ID = s2.ManagerID WHERE s1.ID = "+req.session.scientistID,(err,result)=>{
+        con.query("SELECT s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ID = s2.ManagerID WHERE s1.ID = "+req.query.scientistID,(err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
 });
 
 app.get("/api/get/my/manager",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query("Select s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ManagerID = s2.ID WHERE s1.id = "+req.session.scientistID, (err,result)=>{
+        con.query("Select s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ManagerID = s2.ID WHERE s1.id = "+req.query.scientistID, (err,result)=>{
             res.end(JSON.stringify(result[0]));
         })
     }
 })
 
 app.get("/api/get/my/department",(req,res)=>{
-    if (!req.session.scientistID) {
+    req.query.reload((err)=>{});
+    if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query(`SELECT DepID, HodID, Name, Location FROM scientist s JOIN department d on s.DepID = d.DepID WHERE s.id = ${req.session.scientistID}`,(err,result)=>{
+        con.query(`SELECT DepID, HodID, Name, Location FROM scientist s JOIN department d on s.DepID = d.DepID WHERE s.id = ${req.query.scientistID}`,(err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
 });
 
 app.delete("/api/delete/managee/:manageeID",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query(`UPDATE scientist SET ManagerID = null WHERE id = ${req.params.manageeID} AND managerID = ${req.session.scientistID}`,(err,result)=>{
+        con.query(`UPDATE scientist SET ManagerID = null WHERE id = ${req.params.manageeID} AND managerID = ${req.query.scientistID}`,(err,result)=>{
             if (result.affectedRows == 1) {
                 res.end("Deleted managee");
             } else {
@@ -176,11 +228,11 @@ app.delete("/api/delete/managee/:manageeID",(req,res)=>{
 
 
 app.get("/api/add/managee/:manageeID",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
         con.query(`SELECT ManagerID from scientist WHERE id = ${req.params.manageeID}`,(err,result)=>{
-            con.query(`UPDATE scientist SET ManagerID = ${req.session.scientistID} WHERE id=${req.params.manageeID} and ManagerID <> NULL`,(err,result)=>{
+            con.query(`UPDATE scientist SET ManagerID = ${req.query.scientistID} WHERE id=${req.params.manageeID} and ManagerID <> NULL`,(err,result)=>{
                 res.end("Manager Changed!");
                 if (result.affectedRows == 1) {
                     res.end("Manager Changed!");
@@ -193,20 +245,20 @@ app.get("/api/add/managee/:manageeID",(req,res)=>{
 });
 
 app.get("/api/get/my/projs",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`SELECT s1.ID,s1.FirstName,s1.LastName, p.ProjID, p.Name, p.Description, p.Department, s2.ID as 'Project Manager ID',s2.FirstName as 'PManager First Name', s2.LastName as 'PManager Last Name' FROM scientist s1 JOIN scientist_project_participation sp on s1.ID = sp.ScientistID JOIN project p on sp.ProjectID = p.ProjID JOIN scientist s2 on p.ProjectManager = s2.ID WHERE s1.ID = ${req.session.scientistID}`, (err,result)=>{
+        con.query(`SELECT s1.ID,s1.FirstName,s1.LastName, p.ProjID, p.Name, p.Description, p.Department, s2.ID as 'Project Manager ID',s2.FirstName as 'PManager First Name', s2.LastName as 'PManager Last Name' FROM scientist s1 JOIN scientist_project_participation sp on s1.ID = sp.ScientistID JOIN project p on sp.ProjectID = p.ProjID JOIN scientist s2 on p.ProjectManager = s2.ID WHERE s1.ID = ${req.query.scientistID}`, (err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
 });
 
 app.delete("/api/quit/proj/:projid",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`DELETE FROM scientist_project_participation WHERE ScientistID=${req.session.scientistID} AND ProjectID=${req.params.projid}`,(err,result) =>{
+        con.query(`DELETE FROM scientist_project_participation WHERE ScientistID=${req.query.scientistID} AND ProjectID=${req.params.projid}`,(err,result) =>{
             if (result.affectedRows == 1) {
                 res.end("Project successfully quit");
             } else {
@@ -217,10 +269,10 @@ app.delete("/api/quit/proj/:projid",(req,res)=>{
 });
 
 app.get("/api/join/proj/:projid",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`INSERT INTO scientist_project_participation VALUES(${req.params.projid},${req.session.scientistID})`,(err,result)=>{
+        con.query(`INSERT INTO scientist_project_participation VALUES(${req.params.projid},${req.query.scientistID})`,(err,result)=>{
             if (err) {res.end("You are already in this project")}
             else{
                 res.end("Successfully joined project");
@@ -228,6 +280,15 @@ app.get("/api/join/proj/:projid",(req,res)=>{
         });
     }
 });
+
+app.get("/api/logout",(req,res)=>{
+    if (!req.query.scientistID) {
+        res.end("Already logged out");
+    } else {
+        req.query.scientistID = null;
+        res.end("Logged out successfully");
+    }
+})
 
 
 app.listen(8085,()=>{console.log('listening on port 8085')});
