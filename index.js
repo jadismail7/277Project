@@ -23,10 +23,17 @@ app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
     if (req.body.managerID != null) {
         manager = req.body.managerID;
     }
-    con.query(`INSERT INTO scientist VALUES('${req.body.name}','${req.body.fName}',${req.body.salary},${req.body.managerID},${req.body.depID})`,(err,result)=>{
-        if (err) throw err;
-        console.log("successful");
-        res.end("successful");
+    var salary = null;
+    if (req.body.salary != null) {
+        manager = req.body.salary;
+    }
+
+    con.query(`SELECT DepID FROM department WHERE Name = '${req.body.depName}'`,(err,results)=>{
+        con.query(`INSERT INTO scientist (Firstname,LastName,Salary,ManagerID,DepID,username,password) VALUES ('${req.body.FirstName}','${req.body.LastName}',${salary},${manager},${results[0].DepID},'${req.body.username}','${req.body.password}')`,(err,result)=>{
+            if (err) throw err;
+            console.log("successful");
+            res.end("successful");
+        });
     });
 });
 
@@ -49,7 +56,7 @@ app.post("/api/add/resource",(req,res)=>{
     
 });
 
-app.get('/api/getall/scientists',(req,res)=>{ 
+app.get('/api/get/scientists',(req,res)=>{ 
         con.query('SELECT * FROM `scientist` ', (err,result) => {
         if(err) throw err;
         console.log(JSON.stringify(result));
@@ -58,7 +65,7 @@ app.get('/api/getall/scientists',(req,res)=>{
 });
 
 app.get('/api/get/scientists/:project',(req,res)=>{//add view + edit
-    con.query(`SELECT * FROM scientist s INNER JOIN scientist_project_participation sp ON s.ID = sp.ScientistID INNER JOIN project p on p.ProjID = sp.ProjectID WHERE p.Name = '${req.params.project}' `,(err,result)=>{
+    con.query(`SELECT * FROM SCIENTIST_PROJECT WHERE projname = '${req.params.project}' `,(err,result)=>{
         if (err) throw err;
         console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
@@ -66,7 +73,7 @@ app.get('/api/get/scientists/:project',(req,res)=>{//add view + edit
 
 });
 
-app.get('/api/get/all/project',(req,res)=>{ // get all projects
+app.get('/api/get/project',(req,res)=>{ // get all projects
     con.query(`SELECT * FROM project`,(err,result)=>{
         console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
@@ -80,13 +87,26 @@ app.delete('/api/delete/scientist/:FName/:LName',(req,res)=>{
     });
 });
 
-app.delete('/api/delete/scientist/:projectName',(req,res)=>{
+app.delete('/api/delete/project/:projectName',(req,res)=>{
     con.query(`DELETE FROM project where Name = "${req.params.projectName}"`,(err,result)=>{
         if (err) throw err;
         res.end("Successful");
     });
 });
 
+app.get('/api/get/scientist/projs/:scientistID',(req,res)=>{
+    con.query(`SELECT projname AS name, Description FROM SCIENTIST_PROJECT WHERE ID = ${req.params.scientistID} `,(err,results)=>{
+        res.end(JSON.stringify(results));
+    });
+});
+
+app.get('/api/get/scientist/results/:scientistID',(req,res)=>{
+    con.query(`SELECT projname, data from SCIENTIST_CONTRIBUTION_RESULTS where ID = ${req.params.scientistID}`,(err,results)=>{
+        if (err) throw err;
+        res.end(JSON.stringify(results));
+        console.log("successful")
+    });
+});
 
 
 
@@ -210,4 +230,4 @@ app.get("/api/join/proj/:projid",(req,res)=>{
 });
 
 
-app.listen(8080,()=>{console.log('listening on port 8085')});
+app.listen(8085,()=>{console.log('listening on port 8085')});
