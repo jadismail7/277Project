@@ -1,6 +1,7 @@
 var express = require('express');
 var con = require('./dbconfig.js');
 var session = require("express-session");
+var livereload  = require("connect-livereload");
 
 var app = express();
 app.use(express.json())
@@ -11,13 +12,18 @@ app.use((req, res, next)=>{
   next();
 });
 
-app.use(session({secret: 'alildeektimes',
-                resave: false,
-                saveUninitialized: true,
-                cookie: {secure: true}
-            })
-    );
+app.use(session({
+    secret: "keyboardcat",
+    name: "mycookie",
+    resave: true,
+    saveUninitialized: true,
+    cookie: { 
+        secure: false,
+        maxAge: 6000000
+    }
+}));
 
+app.use(livereload());
 
 app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
     var manager = null;
