@@ -89,7 +89,7 @@ app.get("/api/get/department/projects/:depName",(req,res)=>{
 })
 
 app.get('/api/get/all/project',(req,res)=>{ // get all projects
-    con.query(`SELECT p.ProjID,p.Name,p.Description,d.Name,CONCAT(s.FirstName,' ', s.LastName) as ManagerName FROM project p INNER JOIN scientist s on s.ID = p.ProjectManager INNER JOIN department d on p.Department = d.DepID
+    con.query(`SELECT p.ProjID,p.Name,p.Description,d.Name as Department,CONCAT(s.FirstName,' ', s.LastName) as ManagerName FROM project p INNER JOIN scientist s on s.ID = p.ProjectManager INNER JOIN department d on p.Department = d.DepID
 `,(err,result)=>{
         console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
