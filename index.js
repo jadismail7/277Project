@@ -37,6 +37,11 @@ app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
     });
 });
 
+app.get("/api/get/executives",(req,res)=>{
+    con.query(`SELECT * FROM executive_board`,(err,result)=>{
+        res.end(JSON.stringify(result));
+    })
+})
 
 app.post('/api/add/project',(req,res)=>{ // adding a project
     if (!req.query.scientistID) {
