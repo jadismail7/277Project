@@ -125,6 +125,7 @@ app.post("/api/authenticate",(req,res)=>{
         }
         else if (password == result[0].password){
             req.session.scientistID = result[0].id;
+            req.session.save((err)=>{});
             res.end("Successful");
         } else {
             res.end("Fail");
@@ -153,6 +154,7 @@ app.get("/api/get/my/manager",(req,res)=>{
 })
 
 app.get("/api/get/my/department",(req,res)=>{
+    req.session.reload((err)=>{});
     if (!req.session.scientistID) {
         res.end('unauthorized');
     } else {
