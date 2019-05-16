@@ -142,11 +142,10 @@ app.get("/api/get/my/manager",(req,res)=>{
 })
 
 app.get("/api/get/my/department",(req,res)=>{
-    req.query.reload((err)=>{});
     if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query(`SELECT DepID, HodID, Name, Location FROM scientist s JOIN department d on s.DepID = d.DepID WHERE s.id = ${req.query.scientistID}`,(err,result)=>{
+        con.query(`SELECT d.DepID, d.HodID, d.Name, d.Location FROM scientist s JOIN department d on s.DepID = d.DepID WHERE s.id = ${req.query.scientistID}`,(err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
