@@ -1,6 +1,5 @@
 var express = require('express');
 var con = require('./dbconfig.js');
-var session = require("express-session");
 var livereload  = require("connect-livereload");
 var cors = require("cors");
 var app = express();
@@ -22,16 +21,7 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(session({
-    secret: "keyboardcat",
-    name: "mycookie",
-    resave: true,
-    saveUninitialized: true,
-    cookie: { 
-        secure: false,
-        maxAge: 6000000
-    }
-}));
+
 
 app.use(livereload());
 
@@ -49,11 +39,11 @@ app.post('/api/add/scientist',(req,res)=>{ //for registering a scientist
 
 
 app.post('/api/add/project',(req,res)=>{ // adding a project
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
         con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.managerID},${req.body.depID})`,(err,result)=>{
-            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.session.scientistID})`,(err,result)=>{
+            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.query.scientistID})`,(err,result)=>{
                 if (err) throw err;
                 console.log("successful");
                 res.end("successful");
@@ -124,51 +114,49 @@ app.post("/api/authenticate",(req,res)=>{
             res.end("Fail");
         }
         else if (password == result[0].password){
-            req.session.scientistID = result[0].id;
-            req.session.save((err)=>{});
-            res.end("Successful");
+            res.end(JSON.stringify({success:1, id: result[0].id}));
         } else {
-            res.end("Fail");
+            res.end(JSON.stringify({success: 0}));
         }
     })
 })
 
 app.get("/api/get/my/managees",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query("SELECT s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ID = s2.ManagerID WHERE s1.ID = "+req.session.scientistID,(err,result)=>{
+        con.query("SELECT s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ID = s2.ManagerID WHERE s1.ID = "+req.query.scientistID,(err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
 });
 
 app.get("/api/get/my/manager",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query("Select s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ManagerID = s2.ID WHERE s1.id = "+req.session.scientistID, (err,result)=>{
+        con.query("Select s2.ID, s2.FirstName, s2.LastName from scientist s1 inner join scientist s2 on s1.ManagerID = s2.ID WHERE s1.id = "+req.query.scientistID, (err,result)=>{
             res.end(JSON.stringify(result[0]));
         })
     }
 })
 
 app.get("/api/get/my/department",(req,res)=>{
-    req.session.reload((err)=>{});
-    if (!req.session.scientistID) {
+    req.query.reload((err)=>{});
+    if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query(`SELECT DepID, HodID, Name, Location FROM scientist s JOIN department d on s.DepID = d.DepID WHERE s.id = ${req.session.scientistID}`,(err,result)=>{
+        con.query(`SELECT DepID, HodID, Name, Location FROM scientist s JOIN department d on s.DepID = d.DepID WHERE s.id = ${req.query.scientistID}`,(err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
 });
 
 app.delete("/api/delete/managee/:manageeID",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end('unauthorized');
     } else {
-        con.query(`UPDATE scientist SET ManagerID = null WHERE id = ${req.params.manageeID} AND managerID = ${req.session.scientistID}`,(err,result)=>{
+        con.query(`UPDATE scientist SET ManagerID = null WHERE id = ${req.params.manageeID} AND managerID = ${req.query.scientistID}`,(err,result)=>{
             if (result.affectedRows == 1) {
                 res.end("Deleted managee");
             } else {
@@ -180,11 +168,11 @@ app.delete("/api/delete/managee/:manageeID",(req,res)=>{
 
 
 app.get("/api/add/managee/:manageeID",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
         con.query(`SELECT ManagerID from scientist WHERE id = ${req.params.manageeID}`,(err,result)=>{
-            con.query(`UPDATE scientist SET ManagerID = ${req.session.scientistID} WHERE id=${req.params.manageeID} and ManagerID <> NULL`,(err,result)=>{
+            con.query(`UPDATE scientist SET ManagerID = ${req.query.scientistID} WHERE id=${req.params.manageeID} and ManagerID <> NULL`,(err,result)=>{
                 res.end("Manager Changed!");
                 if (result.affectedRows == 1) {
                     res.end("Manager Changed!");
@@ -197,20 +185,20 @@ app.get("/api/add/managee/:manageeID",(req,res)=>{
 });
 
 app.get("/api/get/my/projs",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`SELECT s1.ID,s1.FirstName,s1.LastName, p.ProjID, p.Name, p.Description, p.Department, s2.ID as 'Project Manager ID',s2.FirstName as 'PManager First Name', s2.LastName as 'PManager Last Name' FROM scientist s1 JOIN scientist_project_participation sp on s1.ID = sp.ScientistID JOIN project p on sp.ProjectID = p.ProjID JOIN scientist s2 on p.ProjectManager = s2.ID WHERE s1.ID = ${req.session.scientistID}`, (err,result)=>{
+        con.query(`SELECT s1.ID,s1.FirstName,s1.LastName, p.ProjID, p.Name, p.Description, p.Department, s2.ID as 'Project Manager ID',s2.FirstName as 'PManager First Name', s2.LastName as 'PManager Last Name' FROM scientist s1 JOIN scientist_project_participation sp on s1.ID = sp.ScientistID JOIN project p on sp.ProjectID = p.ProjID JOIN scientist s2 on p.ProjectManager = s2.ID WHERE s1.ID = ${req.query.scientistID}`, (err,result)=>{
             res.end(JSON.stringify(result));
         })
     }
 });
 
 app.delete("/api/quit/proj/:projid",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`DELETE FROM scientist_project_participation WHERE ScientistID=${req.session.scientistID} AND ProjectID=${req.params.projid}`,(err,result) =>{
+        con.query(`DELETE FROM scientist_project_participation WHERE ScientistID=${req.query.scientistID} AND ProjectID=${req.params.projid}`,(err,result) =>{
             if (result.affectedRows == 1) {
                 res.end("Project successfully quit");
             } else {
@@ -221,10 +209,10 @@ app.delete("/api/quit/proj/:projid",(req,res)=>{
 });
 
 app.get("/api/join/proj/:projid",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`INSERT INTO scientist_project_participation VALUES(${req.params.projid},${req.session.scientistID})`,(err,result)=>{
+        con.query(`INSERT INTO scientist_project_participation VALUES(${req.params.projid},${req.query.scientistID})`,(err,result)=>{
             if (err) {res.end("You are already in this project")}
             else{
                 res.end("Successfully joined project");
@@ -234,10 +222,10 @@ app.get("/api/join/proj/:projid",(req,res)=>{
 });
 
 app.get("/api/logout",(req,res)=>{
-    if (!req.session.scientistID) {
+    if (!req.query.scientistID) {
         res.end("Already logged out");
     } else {
-        req.session.scientistID = null;
+        req.query.scientistID = null;
         res.end("Logged out successfully");
     }
 })
