@@ -54,7 +54,7 @@ app.post('/api/add/project',(req,res)=>{ // adding a project
     if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
-        con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.managerID},${req.body.depID})`,(err,result)=>{
+        con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.description},${req.query.scientistID},${req.body.depID})`,(err,result)=>{
             con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.query.scientistID})`,(err,result)=>{
                 if (err) throw err;
                 console.log("successful");
