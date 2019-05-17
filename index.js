@@ -54,8 +54,11 @@ app.post('/api/add/project',(req,res)=>{ // adding a project
     if (!req.query.scientistID) {
         res.end("unauthorized");
     } else {
+        console.log(`INSERT INTO project VALUES('${req.body.name}',${req.body.description},${req.query.scientistID},${req.body.depID})`);
         con.query(`INSERT INTO project VALUES('${req.body.name}',${req.body.description},${req.query.scientistID},${req.body.depID})`,(err,result)=>{
-            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.query.scientistID})`,(err,result)=>{
+            if (err) throw err;
+            console.log(JSON.stringify(result));
+            con.query(`INSERT INTO scientist_project_participation VALUES(${result.insertID},${req.query.scientistID})`,(err,result2)=>{
                 if (err) throw err;
                 console.log("successful");
                 res.end("successful");
@@ -65,11 +68,18 @@ app.post('/api/add/project',(req,res)=>{ // adding a project
 });
 
 
+app.get('/api/get/departments',(req,res)=>{ 
+        con.query(`SELECT d.depID,d.name,d.Location,CONCAT(s.FirstName,' ',s.LastName) as HODName FROM department d join scientist s on d.HodID=s.id`, (err,result) => {
+        if(err) throw err;
+        // console.log(JSON.stringify(result));
+        res.end(JSON.stringify(result));
+    });
+});
 
 app.get('/api/get/scientists',(req,res)=>{ 
-        con.query('SELECT * FROM `scientist` ', (err,result) => {
+        con.query(`SELECT s1.ID,s1.FirstName,s1.LastName,s1.salary,Concat(s2.FirstName,' ',s2.LastName) as ManagerName,d.Name FROM scientist s1 join scientist s2 on s2.id = s1.managerID join department d on d.depID = s1.depID`, (err,result) => {
         if(err) throw err;
-        console.log(JSON.stringify(result));
+        // console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
     });
 });
@@ -77,7 +87,7 @@ app.get('/api/get/scientists',(req,res)=>{
 app.get('/api/get/scientists/:project',(req,res)=>{//add view + edit
     con.query(`SELECT * FROM SCIENTIST_PROJECT WHERE projname = '${req.params.project}' `,(err,result)=>{
         if (err) throw err;
-        console.log(JSON.stringify(result));
+        // console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
     });
 });
@@ -91,7 +101,7 @@ app.get("/api/get/department/projects/:depName",(req,res)=>{
 app.get('/api/get/all/project',(req,res)=>{ // get all projects
     con.query(`SELECT p.ProjID,p.Name,p.Description,d.Name as Department,CONCAT(s.FirstName,' ', s.LastName) as ManagerName FROM project p INNER JOIN scientist s on s.ID = p.ProjectManager INNER JOIN department d on p.Department = d.DepID
 `,(err,result)=>{
-        console.log(JSON.stringify(result));
+        // console.log(JSON.stringify(result));
         res.end(JSON.stringify(result));
     });
 });
@@ -120,8 +130,14 @@ app.get('/api/get/scientist/results/:scientistID',(req,res)=>{
     con.query(`SELECT projname, data from SCIENTIST_CONTRIBUTION_RESULTS where ID = ${req.params.scientistID}`,(err,results)=>{
         if (err) throw err;
         res.end(JSON.stringify(results));
-        console.log("successful")
+        // console.log("successful");
     });
+});
+
+app.get("/api/get/my/name",(req,res)=>{
+    con.query(`SELECT CONCAT(FirstName,' ',LastName) as Name From scientist where id=${req.query.scientistID}`,(err,result)=>{
+        res.end(result[0].Name);
+    })
 });
 
 app.get('/api/get/proj/result/:projName',(req,res)=>{
